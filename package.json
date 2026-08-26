@@ -1,0 +1,71 @@
+{
+	"name": "@dewanlabs/cf-http-proxy",
+	"version": "1.0.0",
+	"private": true,
+	"description": "A universal HTTP Reverse Proxy service using Cloudflare Workers.",
+	"keywords": [
+		"cloudflare",
+		"http-proxy",
+		"proxy",
+		"http",
+		"https",
+		"reverse-proxy",
+		"forward-proxy",
+		"web-proxy",
+		"cloudflare-workers",
+		"cloudflare-pages",
+		"cloudflare-workers-proxy",
+		"cloudflare-pages-proxy",
+		"cloudflare-workers-web-proxy",
+		"cloudflare-pages-web-proxy",
+		"cloudflare-workers-reverse-proxy",
+		"cloudflare-pages-reverse-proxy",
+		"cloudflare-workers-forward-proxy",
+		"cloudflare-pages-forward-proxy",
+		"cloudflare-workers-http-proxy",
+		"cloudflare-pages-http-proxy"
+	],
+	"homepage": "https://github.com/dewanlab/cf-http-proxy#readme",
+	"bugs": {
+		"url": "https://github.com/dewanlab/cf-http-proxy/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/dewanlab/cf-http-proxy.git"
+	},
+	"license": "MIT",
+	"author": "Abdullah Dewan <[hello@abdullahdewan.com]> (https://abdullahdewan.com)",
+	"type": "module",
+	"directories": {
+		"test": "test"
+	},
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types",
+		"types:check": "tsc --noEmit",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"prepare": "husky"
+	},
+	"lint-staged": {
+		"*.{js,ts,mts,json,md,yml,yaml,jsonc}": "prettier --write",
+		"*.{js,ts,mts}": "eslint --fix"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-plugin": "^1.0.0",
+		"@types/node": "^26.3.0",
+		"eslint": "^10.9.1",
+		"husky": "^9.1.7",
+		"lint-staged": "^17.3.0",
+		"prettier": "^3.9.6",
+		"typescript": "^5.5.2",
+		"typescript-eslint": "^8.68.0",
+		"vitest": "~4.1.0",
+		"wrangler": "^4.126.0"
+	}
+}
