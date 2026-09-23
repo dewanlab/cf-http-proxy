@@ -20,7 +20,7 @@ describe('Universal Reverse Proxy Worker', () => {
 		expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
 	});
 
-	it('returns 500 when TARGET_URL is missing', async () => {
+	it('returns 500 when TARGET_URL is missing and _TARGET_URL query param is not provided', async () => {
 		const request = new Request('https://proxy.dev/api/data', { method: 'GET' });
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, {} as Env, ctx);
@@ -32,7 +32,7 @@ describe('Universal Reverse Proxy Worker', () => {
 		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
 	});
 
-	it('returns 500 when TARGET_URL is invalid', async () => {
+	it('returns 500 when TARGET_URL is invalid and no valid _TARGET_URL is provided', async () => {
 		const request = new Request('https://proxy.dev/api/data', { method: 'GET' });
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, { TARGET_URL: 'not-a-valid-url' }, ctx);
@@ -41,6 +41,46 @@ describe('Universal Reverse Proxy Worker', () => {
 		expect(response.status).toBe(500);
 		const json = (await response.json()) as { error: string };
 		expect(json.error).toBe('Configuration Error');
+	});
+
+	it('uses _TARGET_URL query parameter when provided and ignores TARGET_URL env var', async () => {
+		let fetchedUrl = '';
+
+		globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+			fetchedUrl = url;
+			return new Response('OK from dynamic param target', { status: 200 });
+		}) as unknown as typeof fetch;
+
+		const request = new Request('https://proxy.dev/endpoint?_TARGET_URL=https://dynamic-target.com/api&foo=bar&test=1', {
+			method: 'GET',
+		});
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, { TARGET_URL: 'https://ignored-default.com' }, ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe('OK from dynamic param target');
+		// Verifies dynamic target is used and _TARGET_URL is excluded from forwarded query string
+		expect(fetchedUrl).toBe('https://dynamic-target.com/api/endpoint?foo=bar&test=1');
+	});
+
+	it('works with _TARGET_URL when TARGET_URL env var is completely missing', async () => {
+		let fetchedUrl = '';
+
+		globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+			fetchedUrl = url;
+			return new Response('OK', { status: 200 });
+		}) as unknown as typeof fetch;
+
+		const request = new Request('https://proxy.dev/data?_TARGET_URL=https://param-target.com', {
+			method: 'GET',
+		});
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, {} as Env, ctx);
+		await waitOnExecutionContext(ctx);
+
+		expect(response.status).toBe(200);
+		expect(fetchedUrl).toBe('https://param-target.com/data');
 	});
 
 	it('forwards GET request to target URL with path and query parameters', async () => {

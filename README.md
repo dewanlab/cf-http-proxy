@@ -12,7 +12,7 @@ It dynamically proxies incoming requests to any configured target origin, preser
 
 ## Key Features
 
-- 🎯 **Dynamic Target Origin (`TARGET_URL`)**: Set target base URL via an environment variable (`https://smsprovider.com`, `https://api.example.com/v1`, etc.). Handles trailing slashes cleanly.
+- 🎯 **Dynamic Target Origin (`_TARGET_URL` or `TARGET_URL`)**: Set target base URL on the fly via the `_TARGET_URL` URL query parameter, or configure a fallback via the `TARGET_URL` environment variable (`https://smsprovider.com`, `https://api.example.com/v1`, etc.). `_TARGET_URL` is automatically stripped before forwarding to upstream origin. Handles trailing slashes cleanly.
 - 🔄 **Full Request Forwarding**: Seamlessly preserves:
   - HTTP Methods (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`, etc.)
   - Headers (with automatic `Host` header re-writing for target origin compatibility)
@@ -140,7 +140,7 @@ npx wrangler secret put TARGET_URL
 
 ## Architecture & How It Works
 
-```
+```txt
   Client (Browser / App)
          │
          │  HTTP Request (GET / POST / PUT / OPTIONS...)

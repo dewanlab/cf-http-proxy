@@ -1,6 +1,6 @@
 {
 	"name": "@dewanlabs/cf-http-proxy",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"private": true,
 	"description": "A universal HTTP Reverse Proxy service using Cloudflare Workers.",
 	"keywords": [
@@ -43,7 +43,7 @@
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
-		"test": "vitest",
+		"test": "vitest run",
 		"cf-typegen": "wrangler types",
 		"types:check": "tsc --noEmit",
 		"lint": "eslint .",

@@ -1,11 +1,13 @@
 /**
  * Cloudflare Worker - Universal Reverse Proxy
  *
- * Dynamically proxies all incoming HTTP requests to a target URL configured via the `TARGET_URL`
- * environment variable, preserving HTTP method, headers, query parameters, URL path, and request body.
+ * Dynamically proxies all incoming HTTP requests to a target URL configured via the `_TARGET_URL`
+ * URL parameter (overrides `TARGET_URL`) or the `TARGET_URL` environment variable, preserving HTTP
+ * method, headers, query parameters, URL path, and request body.
  *
  * Features:
- * - Dynamic Target Origin configuration with path & trailing slash normalization.
+ * - Dynamic Target Origin configuration via `_TARGET_URL` query parameter or `TARGET_URL` env variable.
+ * - Dynamic path & trailing slash normalization.
  * - Full request forwarding (methods, headers, path, query params, body stream).
  * - Global CORS support (Access-Control-Allow-Origin: * and preflight handling).
  * - Robust error handling (500 for missing config, 502/504 for gateway issues).
@@ -41,15 +43,19 @@ export default {
 			});
 		}
 
-		// 2. Validate TARGET_URL environment variable
-		const targetUrlEnv = env.TARGET_URL;
-		if (!targetUrlEnv || typeof targetUrlEnv !== 'string' || targetUrlEnv.trim() === '') {
+		// 2. Resolve and validate target URL from URL parameter (_TARGET_URL) or environment variable (TARGET_URL)
+		const incomingUrl = new URL(request.url);
+		const targetUrlParam = incomingUrl.searchParams.get('_TARGET_URL');
+		const targetUrlSource = targetUrlParam && targetUrlParam.trim() !== '' ? targetUrlParam : env.TARGET_URL;
+
+		if (!targetUrlSource || typeof targetUrlSource !== 'string' || targetUrlSource.trim() === '') {
 			const corsHeaders = getCorsHeaders();
 			corsHeaders.set('Content-Type', 'application/json');
 			return new Response(
 				JSON.stringify({
 					error: 'Configuration Error',
-					message: 'TARGET_URL environment variable is missing or empty. Please set TARGET_URL in wrangler.jsonc or Cloudflare Dashboard.',
+					message:
+						'Target URL is missing or empty. Please specify it via the _TARGET_URL query parameter or set TARGET_URL in wrangler.jsonc / Cloudflare Dashboard.',
 				}),
 				{
 					status: 500,
@@ -60,14 +66,14 @@ export default {
 
 		let targetBase: URL;
 		try {
-			targetBase = new URL(targetUrlEnv.trim());
+			targetBase = new URL(targetUrlSource.trim());
 		} catch {
 			const corsHeaders = getCorsHeaders();
 			corsHeaders.set('Content-Type', 'application/json');
 			return new Response(
 				JSON.stringify({
 					error: 'Configuration Error',
-					message: `Invalid TARGET_URL configuration: '${targetUrlEnv}' is not a valid URL.`,
+					message: `Invalid target URL configuration: '${targetUrlSource}' is not a valid URL.`,
 				}),
 				{
 					status: 500,
@@ -77,7 +83,6 @@ export default {
 		}
 
 		// 3. Build target URL by combining target origin base path with incoming pathname & query string
-		const incomingUrl = new URL(request.url);
 		let basePath = targetBase.pathname;
 		if (basePath.endsWith('/')) {
 			basePath = basePath.slice(0, -1);
@@ -85,7 +90,12 @@ export default {
 
 		const targetUrl = new URL(targetBase.origin);
 		targetUrl.pathname = basePath + incomingUrl.pathname;
-		targetUrl.search = incomingUrl.search;
+
+		// Clone search params and remove _TARGET_URL so it is not forwarded upstream
+		const forwardSearchParams = new URLSearchParams(incomingUrl.searchParams);
+		forwardSearchParams.delete('_TARGET_URL');
+		const queryString = forwardSearchParams.toString();
+		targetUrl.search = queryString ? `?${queryString}` : '';
 
 		// 4. Prepare headers for upstream request
 		const forwardHeaders = new Headers(request.headers);
